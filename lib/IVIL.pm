@@ -315,9 +315,9 @@ sub get_refs {
 		}
 
 		my $txt = encode_entities_numeric($text);
-		while ( $txt =~ m/^.*?($pattern)/ ) {
+		while ( $txt =~ /($pattern)/ ) {
 			my $ref = $1;			# Get ref text
-			$txt =~ s/^.*?$pattern//;	# Strip it from text
+			$txt = $';	# Strip it from text
 							# Call the fix routine
 							# (if any)
 			$ref = $fix->($ref) if defined $fix;
