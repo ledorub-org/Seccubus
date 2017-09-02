@@ -76,7 +76,7 @@ my $ivil = join("", <$IVIL>);
 close($IVIL);
 print "File loaded\n" if $verbose;
 print "Parsing data\n" if $verbose;
-my ($workspace_id, $scan_id, $run_id) = load_ivil(
+my ($workspace_id, $scan_id, $run_id) = load_ivil2(
     $ivil,
     $scanner,
     $scanner_version,

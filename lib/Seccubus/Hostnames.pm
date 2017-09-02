@@ -33,6 +33,7 @@ our @ISA = ('Exporter');
 our @EXPORT = qw (
 	update_hostname
 	get_hostnames
+	get_unid
 );
 
 use Carp;
@@ -139,6 +140,55 @@ sub get_hostnames {
 	} else {
 		return [];
 	}
+}
+
+
+# Get unical id for ip/host. Or generate new unid if empty
+# get_unid($workspace_id, $ip)
+
+sub get_unid {
+	my $workspace_id = shift;
+	my $ip = shift;
+
+	my $name = shift;
+
+	$name = gethostbyaddr(inet_aton($ip), AF_INET) unless $name;
+	confess "Invalid parameters" unless ( $workspace_id && $ip );
+
+	if ( may_write($workspace_id) ) {
+
+		my $unid = sql( "return"	=> "array",
+				 		 "query"	=> "SELECT id 
+				 		 			    FROM unid
+						    			WHERE workspace_id = ? AND ip = ?",
+				 		  "values"	=> [ $workspace_id, $ip ]
+			       );
+		if ( $unid == 0 ) {
+			$unid = new_unid($workspace_id,$ip);
+			my $go = sql( "return"	=> "id",
+			     		 "query"	=> "INSERT INTO unid (id, workspace_id, ip, hostname) values (?, ?, ?, ?);",
+			     		 "values"	=> [ $unid, $workspace_id, $ip, $name ],
+			   			);
+		}
+		return $unid;
+	}
+}
+
+sub new_unid {
+	my $workspace_id = shift;
+	my @ip = split(/\./, shift);
+
+	@ip = ($workspace_id, @ip);
+	my $ip;
+	for my $byte (@ip) {
+		if ($byte < 10) {
+			$byte = "00$byte";
+		} elsif ($byte < 100) {
+			$byte = "0$byte";
+		}
+		$ip .= $byte;
+	}
+	return $ip;
 }
 
 # Close the PM file.
