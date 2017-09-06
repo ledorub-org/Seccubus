@@ -33,6 +33,8 @@ our @EXPORT = qw (
 		api_result
 		run_cmd
 		get_severity
+		attach_list
+		save_attach
 	);
 
 use Carp;
@@ -226,6 +228,39 @@ sub get_severity {
 						ORDER BY id"
 	);
 }
+
+sub attach_list {
+	my @list;
+	my $ref_list = sql(
+		"return"	=> "ref",
+		"query"		=> "SELECT name, description, LENGTH(data)
+						FROM attachments"
+	);
+	for my $string (@{$ref_list}) {
+		my $length = ${$string}[2];
+		if ($length / (1024 * 1024) > 1)  {
+			$length = (int $length / (1024 * 1024)) . "M";
+		} elsif ($length / 1024 > 0) {
+			$length = (int $length / 1024 ) . "K";
+		} 
+		my $hr_string = $length . "\t" . ${$string}[0]. " ";
+		push (@list, $hr_string);
+	}
+	return @list;
+}
+
+sub save_attach {
+	my $name = shift;
+	my @file = sql(
+		"return"	=> "array",
+		"query"		=> "SELECT data
+						FROM attachments
+						WHERE name = ?",
+		"values"	=> [ $name ]
+	);
+	return $file[0];
+}
+
 
 # Close the PM file.
 return 1;

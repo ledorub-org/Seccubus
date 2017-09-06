@@ -140,7 +140,6 @@ If statement prepares and executes well
 sub sql {
 	my %arg = @_;
 	$arg{return} = "ref" unless $arg{return};
-
 	confess "No query parameter specified" unless exists $arg{query};
 	$dbh = open_database();
 	confess("Unable to open database") unless $dbh;

@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# Copyright 2017 Frank Breedijk, Steve Launius, Petr
+# Copyright 2017 Frank Breedijk, Steve Launius, Oleg 
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,51 +40,8 @@ our @EXPORT = qw (
 
 use Carp;
 
-
-sub get_vuln {
-    my $workspace_id = shift or die "No workspace_id provided";
-    my $finding_id = shift or die "No finding_id provided";
-
-    if ( may_read($workspace_id) ) {
-        my $params = [ $workspace_id, $workspace_id ];
-
-        my $query = "
-            SELECT 	finding_changes.id, findings.id, host,
-                host_names.name, port, plugin,
-                finding_changes.finding,
-                finding_changes.remark,
-                finding_changes.severity, severity.name,
-                finding_changes.status, finding_status.name,
-                user_id, username, finding_changes.time as changetime,
-                runs.time as runtime
-            FROM
-                finding_changes LEFT JOIN users on (finding_changes.user_id = users.id ),
-                finding_status, severity,
-                runs, findings LEFT JOIN host_names ON findings.host = host_names.ip
-            WHERE
-                findings.workspace_id = ? AND
-                findings.id = ? AND
-                findings.id = finding_changes.finding_id AND
-                finding_changes.severity = severity.id AND
-                finding_changes.status = finding_status.id AND
-                runs.id = finding_changes.run_id
-            ORDER BY finding_changes.time DESC, finding_changes.id DESC
-            ";
-
-
-        return sql( "return"	=> "ref",
-                    "query"	=> $query,
-                    "values"	=> [ $workspace_id, $finding_id ]
-                  );
-    } else {
-        die "Permission denied!";
-    }
-}
-
-
 sub update_vuln {
     my %arg = @_;
-
     # Check if the user has write permissions
     die "You don't have write permissions for this workspace!" unless may_write($arg{workspace_id});
 
@@ -116,7 +73,7 @@ sub update_vuln {
     confess("Invalid severity $arg{severity}") if ($arg{severity} < 0 || $arg{severity} > 5);
 
     my ( @fields, @values );
-    foreach my $field ( qw(scan_id ip port plugin severity status run_id unid vulntype vulnid finding_id) ) {
+    foreach my $field ( qw(scan_id ip port plugin severity status run_id unid vulntype vulnid) ) {
         if ( exists($arg{$field}) ) {
             push @fields, $field;
             push @values, $arg{$field};
@@ -165,83 +122,60 @@ sub update_vuln {
                     "values"	=> \@values,
                       );
     }
-    # Create an audit record
-    #create_finding_change($arg{finding_id},$arg{timestamp},$arg{userid});
+
+    vuln_finding_link($arg{vuln_id}, $arg{finding_id});
     return $arg{vuln_id};
 }
 
-=head2 create_finding_change (hidden)
 
-This function adds a record to the finding_changes table.
+sub vuln_finding_link {
+    my $vuln = shift;
+    my $finding = shift;
 
-=over 2
-
-=item Parameters
-
-=over 4
-
-=item finding_id  - Manditory
-
-=item timestamp - Optional - Timestamp for this change record
-
-=item user_id - Optional - User_id to "blame" for this change
-
-=back
-
-=item Returns
-
-THe inserted id.
-
-=item Checks
-
-None, this is a hidden function that will not be called through the API. All
-checking should have been doine a higher levels.
-
-=back
-
-=cut
-
-sub create_vuln_change {
-    my $finding_id = shift or die "No fidnings_id given";
-    my $timestamp = shift;
-    my $user_id = shift;
-
-    $user_id = get_user_id($ENV{SECCUBUS_USER}) unless $user_id;
-
-    my @new_data = sql( "return"	=> "array",
-            "query"		=> "select status, finding, remark, severity, run_id from findings where id = ?",
-            "values"	=> [ $finding_id ],
-              );
-    my @old_data = sql( "return"	=> "array",
-            "query"		=> "
-                select status, finding, remark, severity, run_id from finding_changes
-                where finding_id = ?
-                order by id DESC
-                limit 1",
-            "values"	=> [ $finding_id ],
-    );
-    my $changed = 0;
-    foreach my $i ( (0..4) ) {
-        if ( $old_data[$i] ne $new_data[$i] || ( defined($old_data[$i]) && !defined($new_data[$i]) ) ||  ( ! defined($old_data[$i]) && defined($new_data[$i]) ) ) {
-            $changed = 1;
-            last;
-        }
+    my $result = sql (
+        "return"    => "array",
+        "query"     => "SELECT vulnerability_id, finding_id
+                        FROM vulnerabilities2findings
+                        WHERE vulnerability_id = ? AND finding_id = ?",
+        "values"    => [ $vuln, $finding ],
+        );
+    if ($result == 0) {
+        my $result = sql (
+            "return"    => "handle",
+            "query"     => "INSERT INTO vulnerabilities2findings 
+                            (vulnerability_id, finding_id)
+                            VALUES (?, ?)",
+            "values"    => [ $vuln, $finding ],
+            );
     }
-    if ( $changed ) {
-        my $query = "insert into finding_changes(finding_id, status, finding, remark, severity, run_id, user_id";
-        $query .= ", time" if $timestamp;
-        $query .= ") values (?, ?, ?, ?, ?, ?, ?";
-        $query .= ", ?" if $timestamp;
-        $query .= ")";
-        my $values = [ $finding_id, @new_data, $user_id ];
-        push @$values, $timestamp if $timestamp;
 
-        sql( "return"	=> "id",
-             "query"	=> $query,
-             "values"	=> $values,
-           );
-    }
 }
+
+
+sub get_vulns_by_finding {
+    my $finding = shift;
+    my @result = sql (
+        "return"    => "array",
+        "query"     => "SELECT vulnerability_id
+                        FROM vulnerabilities2findings
+                        WHERE finding_id = ?",
+        "values"    => [ $finding ],
+        );
+    return @result;
+}
+
+sub get_findings_by_vuln {
+    my $vuln = shift;
+    my @result = sql (
+        "return"    => "array",
+        "query"     => "SELECT finding_id
+                        FROM vulnerabilities2findings
+                        WHERE vulnerability_id = ?",
+        "values"    => [ $vuln ],
+        );
+    return @result;
+}
+
 
 # Close the PM file.
 return 1;

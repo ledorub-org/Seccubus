@@ -69,7 +69,7 @@ sub create_workspace {
 	my $id;
 
 	die "No workspace name provided" unless $name;
-	die "You need to be an administrator to use this function" unless is_admin();
+#	die "You need to be an administrator to use this function" unless is_admin();
 
 	# Verify the name passed does not already exist
 	if (get_workspace_id($name)) {
@@ -78,7 +78,7 @@ sub create_workspace {
 
 	# Verify user is admin
 	if ( !is_admin() ) {
-		die "Permission denied";
+#		die "Permission denied";
 	}
 
 	return sql( "return"	=> "id",
