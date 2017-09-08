@@ -35,7 +35,7 @@ our @ISA = ('Exporter');
 our @EXPORT = qw (
     get_vuln
     update_vuln
-    diff_vuln
+    calculate_vuln_status
 );
 
 use Carp;
@@ -175,6 +175,64 @@ sub get_findings_by_vuln {
         );
     return @result;
 }
+
+sub get_findings_status_by_vuln {
+    my $vuln = shift;
+    my @findings_id = get_findings_by_vuln($vuln);
+    return unless (@findings_id);
+    my $status_sql = "SELECT status FROM findings WHERE id IN (";
+    $status_sql .= join(",", split(" ", "? " x ($#findings_id + 1))) . ")";
+
+    my @result = sql (
+        "return"    => "array",
+        "query"     => $status_sql,
+        "values"    => [ @findings_id ],
+        );
+    return @result;
+}
+
+sub get_vuln_own_status {
+    my $vuln = shift;
+    my @status = sql (
+        "return"    => "array",
+        "query"     => "SELECT status
+                        FROM vulnerabilities
+                        WHERE id = ?",
+        "values"    => [ $vuln ],
+        );
+    return $status[0];
+}
+
+sub calculate_vuln_status {
+    my $vuln_id = shift;
+    my $own_status = get_vuln_own_status($vuln_id);
+
+    # Status 'InWork' overriding all another statuses;
+    if ($own_status == 3) {
+        return 3;
+    }
+
+    my @f_statuses = get_findings_status_by_vuln($vuln_id);
+
+    # Check if all findings have same status
+    unless ( grep {$_ ne $f_statuses[0]} @f_statuses ) {
+        return $f_statuses[0];
+    }
+
+    # Ignore finding with statuses FalsePos, Gone, Pending, MASKED
+
+    @f_statuses = grep {!  ($_ ~~ (qw(5 8 99 5))) } @f_statuses;
+
+    # Check again if all findings have same status
+    unless ( grep {$_ ne $f_statuses[0]} @f_statuses ) {
+        return $f_statuses[0];
+    }
+
+    # Okay, what next?
+
+    return 0;
+}
+
 
 
 # Close the PM file.

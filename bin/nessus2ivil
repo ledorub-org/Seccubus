@@ -215,13 +215,58 @@ foreach my $host ( @{$nessus->{Report}->{ReportHost}} ) {
 			$txt .= "CVSS temporal score: $item->{cvss_temporal_score}\n\n";
 		}
 		if ( $item->{see_also} ) {
+				if (ref($item -> {see_also}) eq 'ARRAY') {
+					if (${$item -> {see_also}}[0] =~ /\n/) {
+						(@{$item -> {see_also}}) = split("\n", ${$item -> {see_also}}[0]);
+					}
+					$finding -> {references} -> {url} = $item -> {see_also};
+				} else {
+					push (@{$finding -> {references} -> {url}}, $item -> {see_also});
+					#push ($finding -> {references} -> {url}, $item -> {see_also});
+				}
 			$txt .= "See also:\n" . join("\n", @{$item->{see_also}});
 			$txt .= "\n\n";
 		}
 		if ( $item->{cve} ) {
+				if (ref($item -> {cve}) eq 'ARRAY') {
+					if (${$item -> {cve}}[0] =~ /\n/) {
+						(@{$item -> {cve}}) = split("\n", ${$item -> {cve}}[0]);
+					}
+					$finding -> {references} -> {cve} = $item -> {cve};
+				} else {
+					push (@{$finding -> {references} -> {cve}}, $item -> {cve});
+				}
 			$txt .= "CVE references: ". join(" ", @{$item->{cve}});
 			$txt .= "\n\n";
 		}
+
+		if ( $item->{cpe} ) {
+				if (ref($item -> {cpe}) eq 'ARRAY') {
+					if (${$item -> {cpe}}[0] =~ /\n/) {
+						(@{$item -> {cpe}}) = split("\n", ${$item -> {cpe}}[0]);
+					}
+					$finding -> {references} -> {cpe} = $item -> {cpe};
+				} else {
+					if ($item -> {cpe} =~ /\n/) {
+						(@{$finding -> {references} -> {cpe}}) = split("\n", $item -> {cpe});
+					} else {
+						push (@{$finding -> {references} -> {cpe}}, $item -> {cpe});
+					}
+				}
+		}
+
+		if ( $item->{cwe} ) {
+				if (ref($item -> {cwe}) eq 'ARRAY') {
+					if (${$item -> {cwe}}[0] =~ /\n/) {
+						(@{$item -> {cwe}}) = split("\n", ${$item -> {cwe}}[0]);
+					}
+					$finding -> {references} -> {cwe} = $item -> {cwe};
+				} else {
+					push (@{$finding -> {references} -> {cwe}}, $item -> {cwe})
+				}
+		}
+
+
 		if ( $item->{bid} ) {
 			$txt .= "BID references: ". join(" ", @{$item->{bid}});
 			$txt .= "\n\n";
@@ -231,6 +276,10 @@ foreach my $host ( @{$nessus->{Report}->{ReportHost}} ) {
 			$txt .= "\n\n";
 		}
 		$finding->{finding} = $txt;
+		if ($item -> {url}) {
+			print Dumper $finding;
+			exit;
+		}
 		print $OUT ivil_finding($finding);
 	}
 }
