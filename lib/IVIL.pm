@@ -268,7 +268,9 @@ sub get_refs {
 			GLSA
 			URL
 			SECUNIA
-		      );
+			CWE
+			CPE
+		    );
 
 
 	foreach my $type ( @types ) {
@@ -310,6 +312,10 @@ sub get_refs {
 			   	};
 		} elsif ( $type eq "SECUNIA" ) {
 			$pattern = 'Secunia\:\d+';
+		} elsif ( $type eq "CPE" ) {
+			$pattern = '(cpe:[\w\:\/]+)';
+		} elsif ( $type eq "CWE" ) {
+			#$pattern = '';
 		} else {
 			confess "Unknown reference type $type";
 		}
