@@ -270,6 +270,7 @@ sub get_refs {
 			SECUNIA
 			CWE
 			CPE
+			EOL
 		    );
 
 
@@ -315,7 +316,14 @@ sub get_refs {
 		} elsif ( $type eq "CPE" ) {
 			$pattern = '(cpe:[\w\:\/]+)';
 		} elsif ( $type eq "CWE" ) {
-			#$pattern = '';
+			$pattern = 'CWE:([0-9]+)';
+		} elsif ( $type eq "EOL" ) {
+			$pattern = 'EOL date:\s+(\d\d\d\d-\d\d-\d\d)';
+			$fix = sub {
+				my $ref = shift;
+				$ref =~ s/EOL date:\s+/EOL:/;
+				return $ref;
+			}
 		} else {
 			confess "Unknown reference type $type";
 		}

@@ -27,6 +27,7 @@ use Seccubus::DB;
 use Seccubus::Rights;
 use Seccubus::Users;
 use Seccubus::Issues;
+use Seccubus::Status;
 use Algorithm::Diff qw( diff );
 use Data::Dumper;
 
@@ -35,7 +36,6 @@ our @ISA = ('Exporter');
 our @EXPORT = qw (
     get_vuln
     update_vuln
-    calculate_vuln_status
 );
 
 use Carp;
@@ -68,9 +68,9 @@ sub update_vuln {
 
     # Lets set some default values
     $arg{overwrite} = 1 if not exists $arg{overwrite};
-    $arg{status} = 1 unless $arg{status} or $arg{vuln_id};
-    $arg{severity} = 0 unless exists $arg{severity} or $arg{vuln_id};
-    confess("Invalid severity $arg{severity}") if ($arg{severity} < 0 || $arg{severity} > 5);
+    $arg{status} = 1 unless $arg{status};
+    $arg{severity} = 99 unless exists $arg{severity};
+    confess("Invalid severity $arg{severity}") if ($arg{severity} < 0 || $arg{severity} > 99);
 
     my ( @fields, @values );
     foreach my $field ( qw(scan_id ip port plugin severity status run_id unid vulntype vulnid) ) {
@@ -202,37 +202,6 @@ sub get_vuln_own_status {
         );
     return $status[0];
 }
-
-sub calculate_vuln_status {
-    my $vuln_id = shift;
-    my $own_status = get_vuln_own_status($vuln_id);
-
-    # Status 'InWork' overriding all another statuses;
-    if ($own_status == 3) {
-        return 3;
-    }
-
-    my @f_statuses = get_findings_status_by_vuln($vuln_id);
-
-    # Check if all findings have same status
-    unless ( grep {$_ ne $f_statuses[0]} @f_statuses ) {
-        return $f_statuses[0];
-    }
-
-    # Ignore finding with statuses FalsePos, Gone, Pending, MASKED
-
-    @f_statuses = grep {!  ($_ ~~ (qw(5 8 99 5))) } @f_statuses;
-
-    # Check again if all findings have same status
-    unless ( grep {$_ ne $f_statuses[0]} @f_statuses ) {
-        return $f_statuses[0];
-    }
-
-    # Okay, what next?
-
-    return 0;
-}
-
 
 
 # Close the PM file.

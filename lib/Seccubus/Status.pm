@@ -25,8 +25,8 @@ sub calculate_status {
 }
 
 sub status_pair {
-	my @status_list = @_;
-	@status_list = sort {$a <=> $b} @status_list;
+	my @status_pair = @_;
+	@status_pair = sort {$a <=> $b} @status_pair;
 
 	my %status_human_readable = (
 		'New'		  => 1,
@@ -60,7 +60,15 @@ sub status_pair {
 		['', ''        ,''        ,'',''        ,''        ,'',''        ,''        ,''             ,''           ,'MASKED'     ], # Masked      #
 	);  ####           #          #  #          #          #  #          #          #               #             #                #             #
         ########################################################################################################################################## 
-    return $status_human_readable{$status[$status_list[0]][$status_list[1]]};
+
+    if ($status_pair[0] == $status_human_readable{MASKED}) {
+    	$status_pair[0] = $#status;
+    }
+    if ($status_pair[1] == $status_human_readable{MASKED}) {
+    	$status_pair[1] = $#status;
+    }
+
+    return $status_human_readable{$status[$status_pair[0]][$status_pair[1]]};
 }
 
 return 1;

@@ -99,25 +99,14 @@ sub load_ivil {
         # Now we create the findings
 
         foreach my $finding ( @{$ivil->{findings}->{finding}} ) {
-            $finding->{severity} = 0 unless defined $finding->{severity};
-            $finding->{severity} = 0 if $finding->{severity} eq "";
+            $finding->{severity} = 99 unless defined $finding->{severity};
+            $finding->{severity} = 99 if $finding->{severity} eq "";
+            $finding->{severity} = 99 if $finding->{severity} == 0;
             # TODO: Seccubus currently does not handle the
             # references as specified in the IVIL format
 
-            my $finding_id = update_finding(
-                workspace_id    => $workspace_id,
-                run_id      => $run_id,
-                scan_id     => $scan_id,
-                host        => $finding->{ip},
-                port        => $finding->{port},
-                plugin      => $finding->{id},
-                finding     => $finding->{finding_txt},
-                severity    => $finding->{severity},
-                timestamp   => $timestamp,
-            );
-
             # Transform a vulnerability references to simple array
-            my @types = qw(cve);
+            my @types = qw(cve cwe eol);
 
             my %refs;
             if (ref($finding -> {references}) eq 'ARRAY') {
@@ -138,7 +127,43 @@ sub load_ivil {
 
             my $unid = get_unid($workspace_id, $finding->{ip});
 
-            for my $vulntype (keys %refs) {
+            # Здесь надо: если есть уязвимости типа CVE - создаём уязвимости. 
+            # Если есть eol, создаём уязвимость
+            # Если ничего нету, но severity = 1,2,3, ставим статус 9.
+
+            my $severity = $finding->{severity};
+            my $cves = $#{$refs{cve}};
+            my $eol  = $#{$refs{eol}};
+            my $cwes  = $#{$refs{cwe}};
+            my $status = 1;
+
+            my @types;
+            if ($cves >= 0) {
+                @types = qw(cve);
+            } elsif ($eol >= 0) {
+                @types = qw(eol);
+            } elsif (($severity >= 1 && $severity < 99) && $cves < 0 && $cwes >0) {
+                @types = qw(cwe);
+            } elsif (($severity >= 1 && $severity < 99) && $cves < 0 && $eol < 0 && $cwes < 0) {
+                @types = qw(ar);
+                @{$refs{ar}} = 'AR:';
+                $status = 9;
+            }
+
+            my $finding_id = update_finding(
+                workspace_id    => $workspace_id,
+                run_id      => $run_id,
+                scan_id     => $scan_id,
+                host        => $finding->{ip},
+                port        => $finding->{port},
+                plugin      => $finding->{id},
+                finding     => $finding->{finding_txt},
+                severity    => $finding->{severity},
+                timestamp   => $timestamp,
+                status      => $status,
+            );
+
+            for my $vulntype (@types) {
                 for my $vulnid (@{$refs{$vulntype}}) {
                     update_vuln(
                         workspace_id    => $workspace_id,

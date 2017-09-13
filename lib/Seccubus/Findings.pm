@@ -1123,7 +1123,7 @@ sub update_finding {
     }
     # Check if status is a legal value
     if ( exists $arg{status} ) {
-        unless ( ($arg{status} >=  1 && $arg{status} <= 6) || $arg{status} == 99 ) {
+        unless ( ($arg{status} >=  1 && $arg{status} <= 20) || $arg{status} == 99 ) {
             die "Illegal status value $arg{status}";
         }
     }
@@ -1151,7 +1151,7 @@ sub update_finding {
     $arg{overwrite} = 1 if not exists $arg{overwrite};
     $arg{status} = 1 unless $arg{status} or $arg{finding_id};
     $arg{severity} = 0 unless exists $arg{severity} or $arg{finding_id};
-    confess("Invalid severity $arg{severity}") if ($arg{severity} < 0 || $arg{severity} > 5);
+    confess("Invalid severity $arg{severity}") if ($arg{severity} < 0 || $arg{severity} > 99);
 
     my ( @fields, @values );
     foreach my $field ( qw(scan_id host port plugin finding severity status run_id) ) {

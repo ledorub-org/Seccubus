@@ -169,8 +169,11 @@ foreach my $host ( @{$nessus->{Report}->{ReportHost}} ) {
 				#die "Unknown attribute $key";
 			}
 		}
-		$item->{port} = 'generic' if ( $item->{port} eq '0' );
+		print $item->{port} . " -- ";
+		$item->{port} = 'general' if ( $item->{port} eq '0' );
+		$item->{port} = 'general' if ( $item->{port} eq 'generic' );
 		$finding->{port} = "$item->{port}/$item->{protocol}";
+		print $finding->{port} . "\n";
 
 		my $txt = "";
 		# Bug #35 - ivil does not import title of Nessus finiding
@@ -222,11 +225,12 @@ foreach my $host ( @{$nessus->{Report}->{ReportHost}} ) {
 					$finding -> {references} -> {url} = $item -> {see_also};
 				} else {
 					push (@{$finding -> {references} -> {url}}, $item -> {see_also});
-					#push ($finding -> {references} -> {url}, $item -> {see_also});
 				}
 			$txt .= "See also:\n" . join("\n", @{$item->{see_also}});
 			$txt .= "\n\n";
 		}
+
+		# Get CVE numbers
 		if ( $item->{cve} ) {
 				if (ref($item -> {cve}) eq 'ARRAY') {
 					if (${$item -> {cve}}[0] =~ /\n/) {
@@ -240,6 +244,7 @@ foreach my $host ( @{$nessus->{Report}->{ReportHost}} ) {
 			$txt .= "\n\n";
 		}
 
+		# Get CPE numbers
 		if ( $item->{cpe} ) {
 				if (ref($item -> {cpe}) eq 'ARRAY') {
 					if (${$item -> {cpe}}[0] =~ /\n/) {
@@ -255,6 +260,7 @@ foreach my $host ( @{$nessus->{Report}->{ReportHost}} ) {
 				}
 		}
 
+		# Get CWE numbers
 		if ( $item->{cwe} ) {
 				if (ref($item -> {cwe}) eq 'ARRAY') {
 					if (${$item -> {cwe}}[0] =~ /\n/) {
@@ -264,6 +270,12 @@ foreach my $host ( @{$nessus->{Report}->{ReportHost}} ) {
 				} else {
 					push (@{$finding -> {references} -> {cwe}}, $item -> {cwe})
 				}
+		}
+
+		# End of life
+		if ( $item -> {unsupported_by_vendor} ) {
+			my ($eol_date) = $item -> {plugin_output} =~ /(\d\d\d\d-\d\d-\d\d)/;
+			@{$finding -> {references} -> {eol}} = ("EOL:" . $eol_date);
 		}
 
 
