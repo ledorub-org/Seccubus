@@ -38,6 +38,7 @@ sub new {
     my ($class, %args) = @_;
 
     my $self = bless {} , $class;
+    die "Workspace number not set" unless ($args{workspace_id});
     $self -> {workspace_id} = $args{workspace_id};
 
     if (may_write($self -> {workspace_id})) {
@@ -48,7 +49,11 @@ sub new {
         $self -> {read} = 1;
     }
 
-    $self -> {timestamp} = time();
+    if ($arg{timestamp}) {
+        $self -> {timestamp} = $arg{timestamp};
+    else {
+        $self -> {timestamp} = time();
+    }
 
     return $self
 }
