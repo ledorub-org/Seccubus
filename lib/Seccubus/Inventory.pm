@@ -39,6 +39,7 @@ sub new {
 
     my $self = bless {} , $class;
     die "Workspace number not set" unless ($args{workspace_id});
+
     $self -> {workspace_id} = $args{workspace_id};
 
     if (may_write($self -> {workspace_id})) {
@@ -49,13 +50,13 @@ sub new {
         $self -> {read} = 1;
     }
 
-    if ($arg{timestamp}) {
-        $self -> {timestamp} = $arg{timestamp};
-    else {
+    if ($args{timestamp}) {
+        $self -> {timestamp} = $args{timestamp};
+    } else {
         $self -> {timestamp} = time();
     }
 
-    return $self
+    return $self;
 }
 
 sub check_object {
@@ -140,8 +141,8 @@ sub search {
         $query .= " and where `key` = ?";
         push (@qargs, $args{key});
     }
-    if (args{value}) {
-        $query .= " and where `value` like ?"''
+    if ($args{value}) {
+        $query .= " and where `value` like ?";
         push (@qargs, $args{value});
     }
 
