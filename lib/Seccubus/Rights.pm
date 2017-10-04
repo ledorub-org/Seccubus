@@ -127,13 +127,13 @@ sub may_write  {
 
 	my $count = sql( "return"	=> "array",
 			 "query"	=> "SELECT count(*)
-			 		    FROM rights, user2group, user
+			 		    FROM rights, user2group, users
 					    WHERE
 					    	rights.workspace_id = ? and
 						rights.allow_write > 0 and
 						rights.group_id = user2group.group_id and
-						user2group.user_id = user.id and
-						user.username = ?
+						user2group.user_id = users.id and
+						users.username = ?
 					    ",
 			 "values"	=> [ $id, $ENV{SECCUBUS_USER} ],
 		       );
