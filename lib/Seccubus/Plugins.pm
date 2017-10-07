@@ -184,6 +184,10 @@ sub list {
 }
 
 
-sub do {
+sub run {
     my $self = shift;
+    my $finding = shift;
+    for my $plugin_code (@{$self -> {plugins}}) {
+        $plugin_code -> ($finding);
+    }
 }
