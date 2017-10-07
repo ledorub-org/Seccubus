@@ -38,6 +38,7 @@ use Seccubus::Runs;
 use Seccubus::Findings;
 use Seccubus::Vulnerabilities;
 use Seccubus::Hostnames;
+use Seccubus::Plugins;
 use Data::Dumper;
 
 use Carp;
@@ -77,6 +78,13 @@ sub load_ivil {
     $timestamp .= "00" if  $timestamp =~ /^\d{12}$/;
     confess "Timestamp: '$timestamp' is invalid" unless $timestamp =~ /^\d{14}$/;
 
+    # Load processing plugins
+
+    my $debug = 0;
+    $debug = 1 if ($print);
+    my $plugins = Seccubus::Plugins -> new( plugins_dir =>  'plugins', workspace_id => $workspace, scanner => $scanner, debug => $debug);
+    $plugins -> load_all_plugins();
+
     my $count = 0;
     if ( exists $ivil->{findings}->{finding} ) {
         $count = @{$ivil->{findings}->{finding}};
@@ -102,8 +110,6 @@ sub load_ivil {
             $finding->{severity} = 99 unless defined $finding->{severity};
             $finding->{severity} = 99 if $finding->{severity} eq "";
             $finding->{severity} = 99 if $finding->{severity} == 0;
-            # TODO: Seccubus currently does not handle the
-            # references as specified in the IVIL format
 
             # Transform a vulnerability references to simple array
             my @types = qw(cve cwe eol);
@@ -126,6 +132,13 @@ sub load_ivil {
             } 
 
             my $unid = get_unid($workspace_id, $finding->{ip});
+            $finding -> {unid} = $unid;
+
+            # Run plugins on $finding
+
+            # TODO: Move ALL processing from this code to plugins
+
+            $plugins -> run(\$finding);
 
             # Здесь надо: если есть уязвимости типа CVE - создаём уязвимости. 
             # Если есть eol, создаём уязвимость
@@ -149,6 +162,10 @@ sub load_ivil {
                 @{$refs{ar}} = 'AR:';
                 $status = 9;
             }
+
+
+
+
 
             my $finding_id = update_finding(
                 workspace_id    => $workspace_id,

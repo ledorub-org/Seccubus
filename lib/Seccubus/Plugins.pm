@@ -57,6 +57,8 @@ sub new {
         print "Ok, we will show debug messages\n";
     }
 
+    print "Scanner: " . $self -> {scanner} . "\n" if ($self -> {debug});
+
     if ($args{workspace_id}) {
         $self -> {workspace_id} = $args{workspace_id};
     } else {
@@ -128,12 +130,14 @@ sub load_plugin {
             my ($str, $comment) = split (/\s*\#\s*/, $f_line);
 
             if ($comment =~ /scanner:\s+(\w+)/) {
-                last if ($1 ne $self -> {scanner});
+                return undef, undef, undef, undef if ($1 ne $self -> {scanner});
                 $scanner = $1;
             } elsif ($comment =~ /name:\s+([\w\d_-]+)/) {
                 $name = $1;
+                print "Parsing plugin $name\n" if ($self -> {debug});
             } elsif ($comment =~ /state:\s+(\w+)/) {
-                last if ($1 ne 'enabled');
+                return undef, undef, undef, undef if ($1 ne 'enabled');
+                print "Plugin $name add to list\n" if ($self -> {debug});
                 $state = $1;
             }
             next unless ($str);
