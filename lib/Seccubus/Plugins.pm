@@ -56,6 +56,7 @@ sub new {
         $self -> {debug} = 1;
         print "Ok, we will show debug messages\n";
     }
+    $self -> {debug} = 1;
 
     print "Scanner: " . $self -> {scanner} . "\n" if ($self -> {debug});
 
@@ -123,15 +124,17 @@ sub load_plugin {
     my $state;
     my $code;
 
-    open (F, $filename);
+    open (F, $filename) || print "Cannot open $filename: $!\n";
     while (my $f_line = <F>) {
-        # Parsing header
+        chomp $f_line;
+        next unless $f_line;
         unless ($code) {
             my ($str, $comment) = split (/\s*\#\s*/, $f_line);
 
             if ($comment =~ /scanner:\s+(\w+)/) {
                 return undef, undef, undef, undef if ($1 ne $self -> {scanner});
                 $scanner = $1;
+                print "Scanner: $scanner" if ($self -> {debug});
             } elsif ($comment =~ /name:\s+([\w\d_-]+)/) {
                 $name = $1;
                 print "Parsing plugin $name\n" if ($self -> {debug});
@@ -142,8 +145,7 @@ sub load_plugin {
             }
             next unless ($str);
         }
-            
-        $code .= $f_line;
+        $code .= $f_line . "\n";
     }
     close F;
     return undef, undef, undef, undef unless ($state);
@@ -178,13 +180,10 @@ sub test_plugin {
 
     # Try to processing test data with plugin
     $result -> (\$finding);
-
-    print Dumper $finding;
 }
 
 sub list {
     my $self = shift;
-    print Dumper $self -> {plugins};
 }
 
 
@@ -192,6 +191,9 @@ sub run {
     my $self = shift;
     my $finding = shift;
     for my $plugin_code (@{$self -> {plugins}}) {
-        $plugin_code -> ($finding);
+        my $ret = $plugin_code -> ($finding);
+        #unless ($ret == 1) {
+        #    print "Unable to execute plugin ($ret)\n" if ($self -> {debug});
+        #}
     }
 }

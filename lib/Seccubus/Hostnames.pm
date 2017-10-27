@@ -36,6 +36,10 @@ our @EXPORT = qw (
 	get_unid
 );
 
+my (
+	%hostnames_cache,
+	);
+
 use Carp;
 
 =head1 Data manipulation - hostnames
@@ -149,10 +153,8 @@ sub get_hostnames {
 sub get_unid {
 	my $workspace_id = shift;
 	my $ip = shift;
-
 	my $name = shift;
 
-	$name = gethostbyaddr(inet_aton($ip), AF_INET) unless $name;
 	confess "Invalid parameters" unless ( $workspace_id && $ip );
 
 	if ( may_write($workspace_id) ) {
@@ -164,6 +166,7 @@ sub get_unid {
 				 		  "values"	=> [ $workspace_id, $ip ]
 			       );
 		if ( $unid == 0 ) {
+			$name = gethostbyaddr(inet_aton($ip), AF_INET) unless $name;
 			$unid = new_unid($workspace_id,$ip);
 			my $go = sql( "return"	=> "id",
 			     		 "query"	=> "INSERT INTO unid (id, workspace_id, ip, hostname) values (?, ?, ?, ?);",

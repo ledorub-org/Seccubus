@@ -17,7 +17,6 @@ package Seccubus::Inventory;
 
 use strict;
 use Exporter;
-use Seccubus::Rights;
  
 our @ISA = ('Exporter');
 
@@ -29,10 +28,12 @@ our @EXPORT = qw (
 use Carp;
 use Net::IP;
 use Socket;
+use Data::Dumper;
 
 use SeccubusV2;
 use Seccubus::DB;
 use Seccubus::Rights;
+use Seccubus::Hostnames;
 
 sub new {
     my ($class, %args) = @_;
@@ -41,6 +42,7 @@ sub new {
     die "Workspace number not set" unless ($args{workspace_id});
 
     $self -> {workspace_id} = $args{workspace_id};
+    $self -> {cache} = {};
 
     if (may_write($self -> {workspace_id})) {
         $self -> {write} = 1;
@@ -59,13 +61,66 @@ sub new {
     return $self;
 }
 
+sub parse_path {
+    my ($self, $ipath) = @_;
+    my (@path) = split ("/", $ipath);
+    my $path;
+    # Skip empty root 
+    shift (@path);
+
+    my $last = $#path;
+
+    for my $step (0..$#path) {
+        next unless ($path[$step]);
+        if ($step == 0) {
+            $path -> {workspace} = $path[$step];
+        } elsif ($step == 1) {
+            $path -> {host} = get_unid($path -> {workspace},$path[$step]);
+        } elsif ($step == $last) {
+            $path -> {value} = $path[$step];
+        } elsif ($step == $last - 1) {
+            $path -> {key} = $path[$step];
+        } else {
+            push(@{$path -> {containers}}, $path[$step]);
+        }
+    }
+    return $path;
+}  
+
+sub add_object {
+    my ($self, $ipath) = @_;
+    my $path = $self -> parse_path($ipath);
+    # insert (or just get id) host
+    my $id = $self ->  insert(parent_id => 0, key => 'host', value => $path -> {host});
+
+    # insert containers
+    for my $container (@{$path -> {containers}}) {
+        $id = $self ->  insert(parent_id => $id, key => 'container', value => $container);        
+    }
+
+    # insert containers
+    if ($path -> {key}) {
+        $id = $self ->  insert(parent_id => $id, key => $path -> {key}, value => $path -> {value});
+    }
+    return $id;
+}
+
+
 sub check_object {
     my ($self, $parent_id, $key, $value) = @_;
-    my $query = "select id from inventory where `parent_id` = ? and `key` = ? and `value` = ?";
+    my $query;
+    my @values;
+    if ($value eq '' or $value eq 0) {
+        $query = "select id from inventory where `parent_id` = ? and `key` = ?";
+        @values = ($parent_id, $key);
+    } else {
+        $query = "select id from inventory where `parent_id` = ? and `key` = ? and `value` = ?";
+        @values = ($parent_id, $key, $value);
+    }
     my @result = sql( "return"    => "array",
-                "query" => $query,
-                "values"    => [$parent_id, $key, $value],
-              );
+                      "query"     => $query,
+                      "values"    => \@values,
+                    );
     return $result[0] if ($#result == 0);
     die "Strange problem: many objects with same (parent_id, key, value)\n" if ($#result > 0);
     return 0;
@@ -76,9 +131,9 @@ sub check_object_by_id {
 
     my $query = "select count(id) from inventory where `id` = ? and workspace_id = ?";
     my @result = sql( "return"    => "array",
-                "query" => $query,
-                "values"    => [$id, $self -> {workspace_id}],
-              );
+                      "query"     => $query,
+                      "values"    => [$id, $self -> {workspace_id}],
+                    );
     return 1 if ($#result == 0);
     return 0;
 }
@@ -86,10 +141,10 @@ sub check_object_by_id {
 sub update_timestamp {
     my ($self, $obj_id) = @_;
     my $query = "update inventory set timestamp = ? where id = ?";
-    my $ref = sql( "return"    => "ref",
-                      "query"     => $query,
-                      "values"    => [$self -> {timestamp}, $obj_id],
-                    );
+    my $ref = sql( "return"    => "handle",
+                   "query"     => $query,
+                   "values"    => [$self -> {timestamp}, $obj_id],
+                 );
 }
 
 sub get_id_by_key_value{
@@ -99,10 +154,14 @@ sub get_id_by_key_value{
 
 sub insert {
     my ($self, %args) = @_;
-
+    # Use cache for fast processing
+    if ($self -> {cache} -> {$args{parent_id}} -> {$args{key}} -> {$args{value}}) {
+        return $self -> {cache} -> {$args{parent_id}} -> {$args{key}} -> {$args{value}};
+    }
     # We check if object with this parent already exists
     my $check_id = $self -> check_object($args{parent_id}, $args{key}, $args{value});
     if ($check_id) {
+        $self -> {cache} -> {$args{parent_id}} -> {$args{key}} -> {$args{value}} = $check_id;
         # Update timestamp in this object to actual
         $self -> update_timestamp($check_id);
         return $check_id;
@@ -124,9 +183,10 @@ sub insert {
     $query .= join (", ", @values) . ")";
 
     my $id = sql( "return"    => "id",
-                      "query"     => $query,
-                      "values"    => $args,
-                    );
+                  "query"     => $query,
+                  "values"    => $args,
+                 );
+    $self -> {cache} -> {$args{parent_id}} -> {$args{key}} -> {$args{value}} = $id;
     return $id;
 }
 
