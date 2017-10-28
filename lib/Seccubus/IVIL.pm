@@ -80,11 +80,6 @@ sub load_ivil {
 
     # Load processing plugins
 
-    my $debug = 0;
-    $debug = 1 if ($print);
-    my $plugins = Seccubus::Plugins -> new( plugins_dir =>  'plugins', workspace_id => $workspace, scanner => $scanner, debug => $debug);
-    $plugins -> load_all_plugins();
-
     my $count = 0;
     if ( exists $ivil->{findings}->{finding} ) {
         $count = @{$ivil->{findings}->{finding}};
@@ -137,6 +132,11 @@ sub load_ivil {
             # Run plugins on $finding
 
             # TODO: Move ALL processing from this code to plugins
+
+            my $debug = 0;
+            $debug = 1 if ($print);
+            my $plugins = Seccubus::Plugins -> new( plugins_dir =>  'plugins', workspace_id => $workspace, scanner => $scanner, debug => $debug);
+            $plugins -> load_all_plugins();
 
             $plugins -> run(\$finding);
 

@@ -58,6 +58,7 @@ sub new {
     }
     $self -> {debug} = 1;
 
+
     print "Scanner: " . $self -> {scanner} . "\n" if ($self -> {debug});
 
     if ($args{workspace_id}) {
@@ -67,7 +68,7 @@ sub new {
     }
 
     $self -> {inventory} = Seccubus::Inventory -> new( workspace_id => $self -> {workspace_id} );
-
+    $self -> {shared} = {};
     $self -> {plugins} = [];
     $self -> {current_plugin} = 0;
     
@@ -88,10 +89,13 @@ sub load_all_plugins {
 
     for (@tmplist) {
         next if ($_ eq '.' || $_ eq '..');
+        print "File $_ . . .\n" if ($self -> {debug});
 
         # Parsing single plugin
 
         my ($name, $scanner, $state, $code) = $self -> load_plugin($_);
+
+        print "$name, $scanner, $state . . .\n" if ($self -> {debug});
 
         next unless ($state eq "enabled");
 
@@ -191,7 +195,7 @@ sub run {
     my $self = shift;
     my $finding = shift;
     for my $plugin_code (@{$self -> {plugins}}) {
-        my $ret = $plugin_code -> ($finding);
+        my $ret = $plugin_code -> ($finding, \$self -> {inventory});
         #unless ($ret == 1) {
         #    print "Unable to execute plugin ($ret)\n" if ($self -> {debug});
         #}

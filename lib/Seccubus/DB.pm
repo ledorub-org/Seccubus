@@ -155,7 +155,7 @@ sub sql {
 	$sth->execute() or
 		confess "Problem with execution of sql statement $arg{query}\n" . $sth->errstr;
 	if ( $arg{return} eq "id" ) {		# We need to return the inserted
-						# ID
+										# ID
 		return $sth->{mysql_insertid};  # This is MySQL specific
 	} elsif ($arg{return} eq "rows") {	# Return the number of rows changed by the last command
 		return $sth->rows();

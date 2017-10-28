@@ -73,9 +73,7 @@ sub parse_path {
     for my $step (0..$#path) {
         next unless ($path[$step]);
         if ($step == 0) {
-            $path -> {workspace} = $path[$step];
-        } elsif ($step == 1) {
-            $path -> {host} = get_unid($path -> {workspace},$path[$step]);
+            $path -> {host} = get_unid($self -> {workspace_id},$path[$step]);
         } elsif ($step == $last) {
             $path -> {value} = $path[$step];
         } elsif ($step == $last - 1) {
