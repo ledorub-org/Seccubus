@@ -67,20 +67,13 @@ sub parse_path {
     my $path;
     # Skip empty root 
     shift (@path);
-
     my $last = $#path;
 
-    for my $step (0..$#path) {
-        next unless ($path[$step]);
-        if ($step == 0) {
-            $path -> {host} = get_unid($self -> {workspace_id},$path[$step]);
-        } elsif ($step == $last) {
-            $path -> {value} = $path[$step];
-        } elsif ($step == $last - 1) {
-            $path -> {key} = $path[$step];
-        } else {
-            push(@{$path -> {containers}}, $path[$step]);
-        }
+    $path -> {host} = get_unid($self -> {workspace_id},$path[0]);
+    for (my $step = 1; $step <= $#path;  $step += 2) {
+        my $key = $path[$step];
+        my $value = $path[$step + 1];
+        push( @{$path -> {path}}, [$path[$step], $path[$step + 1]] );
     }
     return $path;
 }  
@@ -92,13 +85,9 @@ sub add_object {
     my $id = $self ->  insert(parent_id => 0, key => 'host', value => $path -> {host});
 
     # insert containers
-    for my $container (@{$path -> {containers}}) {
-        $id = $self ->  insert(parent_id => $id, key => 'container', value => $container);        
-    }
-
-    # insert containers
-    if ($path -> {key}) {
-        $id = $self ->  insert(parent_id => $id, key => $path -> {key}, value => $path -> {value});
+    for my $array (@{$path -> {path}}) {
+         my ($key, $value) = @{$array};
+        $id = $self ->  insert(parent_id => $id, key => $key, value => $value);        
     }
     return $id;
 }

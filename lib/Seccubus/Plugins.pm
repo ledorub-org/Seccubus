@@ -56,8 +56,6 @@ sub new {
         $self -> {debug} = 1;
         print "Ok, we will show debug messages\n";
     }
-    $self -> {debug} = 1;
-
 
     print "Scanner: " . $self -> {scanner} . "\n" if ($self -> {debug});
 
