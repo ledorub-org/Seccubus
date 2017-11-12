@@ -2,8 +2,8 @@
 # Header should to contain three fields: name, scanner, and state. 
 
 # ------------------------------------------------------------------------------
-# name:    OpenVAS_ip_collector
-# scanner: OpenVAS
+# name:    All_scanner_ip_collector
+# scanner: All
 # state:   enabled 
 # ------------------------------------------------------------------------------
 

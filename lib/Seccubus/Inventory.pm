@@ -55,6 +55,8 @@ sub new {
     if ($args{timestamp}) {
         $self -> {timestamp} = $args{timestamp};
     } else {
+        # Если нет таймстампа, берём 
+
         $self -> {timestamp} = time();
     }
 

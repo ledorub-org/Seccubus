@@ -24,7 +24,6 @@ our @ISA = ('Exporter');
 
 our @EXPORT = qw (
                   new
-
 );
 
 our @valid_scanners = qw(OpenVAS Nessus Nmap);
@@ -46,10 +45,16 @@ sub new {
         die "Cannot find plugin directory";
     }
 
-    if ($args{scanner} ~~ @valid_scanners) {
+    if (grep {$args{scanner} eq $_} @valid_scanners) {
         $self -> {scanner}    = $args{scanner};
     } else {
         die "Not valid scanner\n";
+    }
+
+    if ($args{timestamp} =~ /\d{14}/) {
+        $self -> {timestamp} = $args{timestamp};
+    } else {
+        die "You need to determine timestamp";
     }
 
     if ($args{debug}) {
@@ -65,11 +70,13 @@ sub new {
         die "Not valid workspace_id\n";
     }
 
-    $self -> {inventory} = Seccubus::Inventory -> new( workspace_id => $self -> {workspace_id} );
+    $self -> {inventory} = Seccubus::Inventory -> new( workspace_id => $self -> {workspace_id}, 
+                                                       timestamp    => $self -> {timestamp}, 
+                                                     );
     $self -> {shared} = {};
     $self -> {plugins} = [];
     $self -> {current_plugin} = 0;
-    
+
     return $self;
 }
 
@@ -127,6 +134,7 @@ sub load_plugin {
     my $code;
 
     open (F, $filename) || print "Cannot open $filename: $!\n";
+
     while (my $f_line = <F>) {
         chomp $f_line;
         next unless $f_line;
@@ -134,7 +142,7 @@ sub load_plugin {
             my ($str, $comment) = split (/\s*\#\s*/, $f_line);
 
             if ($comment =~ /scanner:\s+(\w+)/) {
-                return undef, undef, undef, undef if ($1 ne $self -> {scanner});
+                return undef, undef, undef, undef unless ($1 eq $self -> {scanner} || $1 =~ /^[Aa]ll$/);
                 $scanner = $1;
                 print "Scanner: $scanner" if ($self -> {debug});
             } elsif ($comment =~ /name:\s+([\w\d_-]+)/) {
@@ -170,22 +178,30 @@ sub test_plugin {
     $finding -> {finding_txt} = 'Hello! This is test finding from fake scanner. We have CVE-0000-00 in port 8080';
 
     my ($name, $scanner, $state, $code) = $self -> load_plugin($plugin_file);
+
     unless ($name) {
         die "Plugin without name or wrong file format\n";
     }
     # Eval plugin code
-    my $result = eval($code);
-    unless ($result) {
+    my $plugin_code = eval($code);
+    unless ($plugin_code) {
         print "Problem with execution plugin $name\n";
-        print $@;   
+        $self -> show_code($code, $@);
+        die;
     }
 
     # Try to processing test data with plugin
-    $result -> (\$finding);
-}
+    eval {
+        $plugin_code -> (\$finding, \$self -> {inventory});
+    };
+    if ($@) {
+        print "Problem with execution plugin $name\n";
+        $self -> show_code($code, $@);
+        die;
+    }
 
-sub list {
-    my $self = shift;
+    print "Executed normally\n";
+    exit;
 }
 
 
@@ -198,4 +214,42 @@ sub run {
         #    print "Unable to execute plugin ($ret)\n" if ($self -> {debug});
         #}
     }
+}
+
+sub show_code {
+    my $self = shift;
+    my $code = shift;
+    my $errorline = shift;
+
+    my ($highlight) = $errorline =~ /line (\d+).$/;
+    $highlight = "0$highlight" if ($highlight < 10);
+
+    # Colorize console
+
+    my %c = ('blue'           => "\x1b[34m",
+             'red'            => "\x1b[31m",
+             'gray'           => "\x1b[0;37m",
+             'bold_blue'      => "\x1b[1;34m",
+             'bold_red'       => "\x1b[1;31m",
+             'white_on_blue'  => "\x1b[1;37;44m",
+             'gray_on_blue'   => "\x1b[0;37;44m",
+             'black_on_white' => "\x1b[1;30;47m",
+             'red_on_white'   => "\x1b[1;31;47m",
+             'yellow'         => "\x1b[1;33m",
+             'yellow_on_blue' => "\x1b[1;33;44m",
+             'blue_on_white'  => "\x1b[1;34;47m",
+             'reset'          => "\x1b[0m",
+    );
+
+    print "\n";
+    print "  " . $c{red} . $@ . $c{reset} . "\n";
+    my @code = split(/\n/, $code);
+    my $num = "00";
+    for (@code) {
+        $num++;
+        print "$c{yellow}" if ($num eq $highlight);
+        print '  ' . $num . '  ' . $_ . "\n";
+        print "$c{reset}" if ($num eq $highlight);
+    }
+    print "\n";
 }

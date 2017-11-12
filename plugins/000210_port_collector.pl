@@ -1,9 +1,10 @@
 # Template findings processing plugin for Seccubus
 # Header should to contain three fields: name, scanner, and state. 
+
 # ------------------------------------------------------------------------------
-# name:    Template
-# scanner: OpenVAS
-# state:   disabled 
+# name:    All_scanner_port_collector
+# scanner: All
+# state:   enabled 
 # ------------------------------------------------------------------------------
 
 sub {
@@ -14,10 +15,13 @@ sub {
 
     my $inventory = shift; # This is ref to inventory object.
 
-    # Example: find CVE number in finding_txt and create new field CVE
+    my $ip = $$ref -> {'ip'};
+    my $port = $$ref -> {'port'};
+    return 1 if ($port =~ /[Gg]ener(ic)|(al)/);
 
-    $$ref -> {finding_txt} =~ /(CVE-\d+-\d+)/;
-    $$ref -> {CVE} = $1;
+    $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/ports/' . $port);
+    $$inventory -> add_object('/' . $ip . '/ports/' . $port);
 
-    return 0; # You should return 0 if the plugin has normally executed and 1 in other case.
+
+    return 1; # You should return 1 if the plugin has normally executed and 0 in other case.
 }

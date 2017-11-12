@@ -135,7 +135,12 @@ sub load_ivil {
 
             my $debug = 0;
             $debug = 1 if ($print);
-            my $plugins = Seccubus::Plugins -> new( plugins_dir =>  'plugins', workspace_id => $workspace, scanner => $scanner, debug => $debug);
+            my $plugins = Seccubus::Plugins -> new( plugins_dir  =>  'plugins', 
+                                                    workspace_id => $workspace, 
+                                                    scanner      => $scanner, 
+                                                    timestamp    => $timestamp,
+                                                    debug        => $debug,
+                                                  );
             $plugins -> load_all_plugins();
 
             $plugins -> run(\$finding);

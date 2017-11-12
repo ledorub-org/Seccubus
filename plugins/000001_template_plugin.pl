@@ -1,0 +1,23 @@
+# Template findings processing plugin for Seccubus
+# Header should to contain three fields: name, scanner, and state. 
+# ------------------------------------------------------------------------------
+# name:    Template
+# scanner: All
+# state:   disabled 
+# ------------------------------------------------------------------------------
+
+sub {
+    my $ref = shift; # This is reference to finding. 
+                     # You can use $$ref -> {finding_field_name}. eg: $$ref -> {ip}.
+                     # See doc in Plugins.pm for details
+
+
+    my $inventory = shift; # This is ref to inventory object.
+
+    # Example: find CVE number in finding_txt and create new field CVE
+
+    $$ref -> {finding_txt} =~ /(CVE-\d+-\d+)/;
+    $$ref -> {CVE} = $1;
+
+    return 0; # You should return 0 if the plugin has normally executed and 1 in other case.
+}
