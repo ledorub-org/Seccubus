@@ -10,7 +10,7 @@
 # ------------------------------------------------------------------------------
 # Test data:
 # ------------------------------------------------------------------------------
-# test_data:finding_txt: "blahblah cpe:/a:roundcube:webmail:1.0.3 blahblah"
+# test_data:finding_txt: "blahblah cpe:/a:roundcube:webmail:1.0.3 blahblah\nLocation: /home/blabla"
 # ------------------------------------------------------------------------------
 
 sub {
@@ -22,8 +22,8 @@ sub {
     my $inventory = shift; # This is ref to inventory object.
 
     if ($$ref -> {finding_txt} =~ /cpe:\/a:([\w\:\.\d\-\_]+)/) {
-
         my $cpe = $1;
+        my ($location) = $$ref -> {finding_txt} =~ /Location: (\/[\d\w\-\_\.\/]+)/;
 
         my ($vendor, $software, $version) = split(/:/, $cpe);
 
@@ -34,11 +34,14 @@ sub {
 
         unless ($port =~ /[Gg]ener(ic)|(al)/) {
             $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/container/ports/' . $port . '/container/service/' . $vendor . ' ' . $software . '/' . $version);
+            if ($location) {
+                $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/container/ports/' . $port . '/container/service/' . $vendor . ' ' . $software . '/' . $version . '/location/"' . $location . '"' );
+            }
         }
-
         $$inventory -> add_object('/' . $ip . '/container/software/' . $vendor . ' ' . $software . '/' . $version);
-
+        if ($location) {
+            $$inventory -> add_object('/' . $ip . '/container/software/' . $vendor . ' ' . $software . '/' . $version . '/location/"' . $location . '"');
+        }
     }
-
     return 1; # You should return 1 if the plugin has normally executed and 0 in other case.
 }

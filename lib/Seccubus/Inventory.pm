@@ -68,10 +68,17 @@ sub new {
 
 sub parse_path {
     my ($self, $ipath) = @_;
-    my (@path) = split ("/", $ipath);
+    my @path;
+    while ($ipath =~ /\/([\w\.\-\_\s]+)|("([^"]+)")/) {
+        if ($1) {
+            push (@path, $1); 
+        } elsif ($3) {
+            push (@path, $3); 
+        }
+        $ipath = $';
+    }
     my $path;
-    # Skip empty root 
-    shift (@path);
+
     my $last = $#path;
 
     $path -> {host} = get_unid($self -> {workspace_id},$path[0]);
