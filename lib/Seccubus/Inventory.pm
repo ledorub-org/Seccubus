@@ -56,8 +56,11 @@ sub new {
         $self -> {timestamp} = $args{timestamp};
     } else {
         # Если нет таймстампа, берём 
-
         $self -> {timestamp} = time();
+    }
+
+    if ($args{test_run}) {
+        $self -> {test_run} = 1;
     }
 
     return $self;
@@ -143,6 +146,9 @@ sub get_id_by_key_value{
 
 sub insert {
     my ($self, %args) = @_;
+
+    return 0 if ($self -> {test_run});
+
     # Use cache for fast processing
     if ($self -> {cache} -> {$args{parent_id}} -> {$args{key}} -> {$args{value}}) {
         return $self -> {cache} -> {$args{parent_id}} -> {$args{key}} -> {$args{value}};

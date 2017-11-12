@@ -2,6 +2,8 @@
 # Header should to contain three fields: name, scanner, and state. 
 
 # ------------------------------------------------------------------------------
+# Header:
+# ------------------------------------------------------------------------------
 # name:    All_scanner_port_collector
 # scanner: All
 # state:   enabled 
@@ -19,9 +21,10 @@ sub {
     my $port = $$ref -> {'port'};
     return 1 if ($port =~ /[Gg]ener(ic)|(al)/);
 
-    $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/ports/' . $port);
-    $$inventory -> add_object('/' . $ip . '/ports/' . $port);
+    my ($portnum, $proto) = split("/", $port);
+    $port = "$proto/$portnum";
 
+    $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/container/ports/' . $port);
 
     return 1; # You should return 1 if the plugin has normally executed and 0 in other case.
 }

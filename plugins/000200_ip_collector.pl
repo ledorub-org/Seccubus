@@ -2,6 +2,8 @@
 # Header should to contain three fields: name, scanner, and state. 
 
 # ------------------------------------------------------------------------------
+# Header:
+# ------------------------------------------------------------------------------
 # name:    All_scanner_ip_collector
 # scanner: All
 # state:   enabled 
@@ -11,7 +13,6 @@ sub {
     my $ref = shift; # This is reference to finding. 
                      # You can use $$ref -> {finding_field_name}. eg: $$ref -> {ip}.
                      # See doc in Plugins.pm for details
-
 
     my $inventory = shift; # This is ref to inventory object.
 

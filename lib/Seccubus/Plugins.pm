@@ -98,7 +98,7 @@ sub load_all_plugins {
 
         # Parsing single plugin
 
-        my ($name, $scanner, $state, $code) = $self -> load_plugin($_);
+        my ($name, $scanner, $state, $code, $test_data) = $self -> load_plugin($_);
 
         print "$name, $scanner, $state . . .\n" if ($self -> {debug});
 
@@ -132,6 +132,7 @@ sub load_plugin {
     my $scanner;
     my $state;
     my $code;
+    my $test_data;
 
     open (F, $filename) || print "Cannot open $filename: $!\n";
 
@@ -142,24 +143,27 @@ sub load_plugin {
             my ($str, $comment) = split (/\s*\#\s*/, $f_line);
 
             if ($comment =~ /scanner:\s+(\w+)/) {
-                return undef, undef, undef, undef unless ($1 eq $self -> {scanner} || $1 =~ /^[Aa]ll$/);
+                return undef, undef, undef, undef, undef unless ($1 eq $self -> {scanner} || $1 =~ /^[Aa]ll$/);
                 $scanner = $1;
                 print "Scanner: $scanner" if ($self -> {debug});
             } elsif ($comment =~ /name:\s+([\w\d_-]+)/) {
                 $name = $1;
                 print "Parsing plugin $name\n" if ($self -> {debug});
             } elsif ($comment =~ /state:\s+(\w+)/) {
-                return undef, undef, undef, undef if ($1 ne 'enabled');
+                return undef, undef, undef, undef, undef if ($1 ne 'enabled');
                 print "Plugin $name add to list\n" if ($self -> {debug});
                 $state = $1;
+            } elsif ($comment =~ /test_data:([\w\_\-\.]+):\s+"([^"]+)"/) {
+                print "Plugin $name add to list\n" if ($self -> {debug});
+                $test_data -> {$1} = $2;
             }
             next unless ($str);
         }
         $code .= $f_line . "\n";
     }
     close F;
-    return undef, undef, undef, undef unless ($state);
-    return ($name, $scanner, $state, $code);
+    return undef, undef, undef, undef, undef unless ($state);
+    return ($name, $scanner, $state, $code, $test_data);
 }
 
 sub test_plugin {
@@ -167,6 +171,14 @@ sub test_plugin {
     my $plugin_file = shift;
 
     # Define test data
+
+    my ($name, $scanner, $state, $code, $test_data) = $self -> load_plugin($plugin_file);
+
+    unless ($name) {
+        die "Plugin without name or wrong file format\n";
+    }
+
+    # Default test data
 
     my $finding;
     $finding -> {ip}          = '127.0.0.1';
@@ -177,11 +189,13 @@ sub test_plugin {
     $finding -> {severity}    = '3';
     $finding -> {finding_txt} = 'Hello! This is test finding from fake scanner. We have CVE-0000-00 in port 8080';
 
-    my ($name, $scanner, $state, $code) = $self -> load_plugin($plugin_file);
+    # If test_data determine in plugin file:
+    for my $test_key (keys($test_data)) {
+        $finding -> {$test_key} = $test_data -> {$test_key};
+    } 
 
-    unless ($name) {
-        die "Plugin without name or wrong file format\n";
-    }
+    print Dumper $finding;
+
     # Eval plugin code
     my $plugin_code = eval($code);
     unless ($plugin_code) {
@@ -203,7 +217,6 @@ sub test_plugin {
     print "Executed normally\n";
     exit;
 }
-
 
 sub run {
     my $self = shift;

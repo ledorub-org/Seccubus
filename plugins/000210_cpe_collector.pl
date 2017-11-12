@@ -4,14 +4,12 @@
 # ------------------------------------------------------------------------------
 # Header:
 # ------------------------------------------------------------------------------
-# name:    Template
-# scanner: All
-# state:   disabled 
+# name:    CPEDetector
+# scanner: OpenVAS
+# state:   enabled 
 # ------------------------------------------------------------------------------
-# Test data (optional):
+# Test data:
 # ------------------------------------------------------------------------------
-# test_data:ip:          "127.0.0.1"
-# test_data:port:        "8080"
 # test_data:finding_txt: "blahblah cpe:/a:roundcube:webmail:1.0.3 blahblah"
 # ------------------------------------------------------------------------------
 
@@ -23,13 +21,24 @@ sub {
 
     my $inventory = shift; # This is ref to inventory object.
 
-    # Example: find CVE number in finding_txt 
+    if ($$ref -> {finding_txt} =~ /cpe:\/a:([\w\:\.\d\-\_]+)/) {
 
-    $$ref -> {finding_txt} =~ /(CVE-\d+-\d+)/;
+        my $cpe = $1;
 
-    # Add CVE number to finding struct for use in other (next) plugins
+        my ($vendor, $software, $version) = split(/:/, $cpe);
 
-    $$ref -> {CVE} = $1;
+        my $ip = $$ref -> {'ip'};
+        my $port = $$ref -> {'port'};
+        my ($portnum, $proto) = split("/", $port);
+        $port = "$proto/$portnum";
 
-    return 0; # You should return 0 if the plugin has normally executed and 1 in other case.
+        unless ($port =~ /[Gg]ener(ic)|(al)/) {
+            $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/container/ports/' . $port . '/container/service/' . $vendor . ' ' . $software . '/' . $version);
+        }
+
+        $$inventory -> add_object('/' . $ip . '/container/software' . $vendor . ' ' . $software . '/' . $version);
+
+    }
+
+    return 1; # You should return 1 if the plugin has normally executed and 0 in other case.
 }
