@@ -36,7 +36,7 @@ sub {
             $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/container/ports/' . $port . '/container/service/' . $vendor . ' ' . $software . '/' . $version);
         }
 
-        $$inventory -> add_object('/' . $ip . '/container/software' . $vendor . ' ' . $software . '/' . $version);
+        $$inventory -> add_object('/' . $ip . '/container/software/' . $vendor . ' ' . $software . '/' . $version);
 
     }
 
