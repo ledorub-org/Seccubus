@@ -39,6 +39,7 @@ use Seccubus::Findings;
 use Seccubus::Vulnerabilities;
 use Seccubus::Hostnames;
 use Seccubus::Plugins;
+use Seccubus::Kickstarts;
 use Data::Dumper;
 
 use Carp;
@@ -77,6 +78,10 @@ sub load_ivil {
 
     $timestamp .= "00" if  $timestamp =~ /^\d{12}$/;
     confess "Timestamp: '$timestamp' is invalid" unless $timestamp =~ /^\d{14}$/;
+
+    # Save kickstart timestamp
+
+    kickstart($workspace, $timestamp);
 
     # Load processing plugins
 
@@ -167,9 +172,6 @@ sub load_ivil {
                 @{$refs{ar}} = 'AR:';
                 $status = 9;
             }
-
-
-
 
 
             my $finding_id = update_finding(

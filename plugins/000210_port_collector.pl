@@ -18,11 +18,12 @@ sub {
     my $inventory = shift; # This is ref to inventory object.
 
     my $ip = $$ref -> {'ip'};
-    my $port = $$ref -> {'port'};
-    return 1 if ($port =~ /[Gg]ener(ic)|(al)/);
 
+    my $port = $$ref -> {'port'};
     my ($portnum, $proto) = split("/", $port);
     $port = "$proto/$portnum";
+
+    return 1 if ($port =~ /[Gg]ener(ic)|(al)/);
 
     $$inventory -> add_object('/' . $ip . '/ipaddr/' . $ip . '/container/ports/' . $port);
 
