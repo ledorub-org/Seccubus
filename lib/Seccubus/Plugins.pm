@@ -141,7 +141,6 @@ sub load_plugin {
         next unless $f_line;
         unless ($code) {
             my ($str, $comment) = split (/\s*\#\s*/, $f_line);
-
             if ($comment =~ /scanner:\s+(\w+)/) {
                 return undef, undef, undef, undef, undef unless ($1 eq $self -> {scanner} || $1 =~ /^[Aa]ll$/);
                 $scanner = $1;
@@ -154,8 +153,11 @@ sub load_plugin {
                 print "Plugin $name add to list\n" if ($self -> {debug});
                 $state = $1;
             } elsif ($comment =~ /test_data:([\w\_\-\.]+):\s+"([^"]+)"/) {
-                print "Plugin $name add to list\n" if ($self -> {debug});
-                $test_data -> {$1} = $2;
+                if ($test_data -> {$1}) {
+                        $test_data -> {$1} .= "\n" . $2;
+                    } else {
+                        $test_data -> {$1} = $2;
+                    }
             }
             next unless ($str);
         }
@@ -189,12 +191,17 @@ sub test_plugin {
     $finding -> {severity}    = '3';
     $finding -> {finding_txt} = 'Hello! This is test finding from fake scanner. We have CVE-0000-00 in port 8080';
 
+    for my $f (keys($finding)) {
+        if (!$test_data -> {$f}) {
+            $test_data -> {$f} = $finding -> {$f};
+        }
+    }
+
+
     # If test_data determine in plugin file:
     for my $test_key (keys($test_data)) {
         $finding -> {$test_key} = $test_data -> {$test_key};
     } 
-
-    print Dumper $finding;
 
     # Eval plugin code
     my $plugin_code = eval($code);
