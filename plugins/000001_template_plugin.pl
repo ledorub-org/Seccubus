@@ -6,7 +6,7 @@
 # ------------------------------------------------------------------------------
 # name:    Template
 # scanner: All
-# state:   disabled 
+# state:   enabled 
 # ------------------------------------------------------------------------------
 # Test data (optional):
 # ------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ sub {
 
     # Example: find CVE number in finding_txt 
 
-    $$ref -> {finding_txt} =~ /(CVE-\d+-\d+)/;
+    $ref -> {finding_txt} =~ /(CVE-\d+-\d+)/;
 
     # Add CVE number to finding struct for use in other (next) plugins
 

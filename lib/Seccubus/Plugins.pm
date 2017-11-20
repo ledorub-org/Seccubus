@@ -203,22 +203,28 @@ sub test_plugin {
         $finding -> {$test_key} = $test_data -> {$test_key};
     } 
 
+    # No warn
+
+    $SIG{'__WARN__'} = sub {};
+
     # Eval plugin code
     my $plugin_code = eval($code);
+
     unless ($plugin_code) {
         print "Problem with execution plugin $name\n";
         $self -> show_code($code, $@);
-        die;
+        exit;
     }
 
     # Try to processing test data with plugin
     eval {
         $plugin_code -> (\$finding, \$self -> {inventory});
     };
+
     if ($@) {
         print "Problem with execution plugin $name\n";
         $self -> show_code($code, $@);
-        die;
+        exit;
     }
 
     print "Executed normally\n";
@@ -240,9 +246,15 @@ sub show_code {
     my $self = shift;
     my $code = shift;
     my $errorline = shift;
+    my %highlights;
 
-    my ($highlight) = $errorline =~ /line (\d+).$/;
-    $highlight = "0$highlight" if ($highlight < 10);
+    my (@errorlines) = split(/\n/, $errorline);
+
+    while (my ($highlight) = $errorline =~ /line (\d+)[,\.\s]/) {
+        $highlight = "0$highlight" if ($highlight < 10);
+        $highlights{$highlight} = 1;
+        $errorline = $';
+    }
 
     # Colorize console
 
@@ -262,14 +274,17 @@ sub show_code {
     );
 
     print "\n";
-    print "  " . $c{red} . $@ . $c{reset} . "\n";
+    for (@errorlines) {
+        print "  " . $c{red} . $_ . $c{reset} . "\n";
+    }
+    print "\n";
     my @code = split(/\n/, $code);
     my $num = "00";
     for (@code) {
         $num++;
-        print "$c{yellow}" if ($num eq $highlight);
+        print "$c{yellow}" if ($highlights{$num});
         print '  ' . $num . '  ' . $_ . "\n";
-        print "$c{reset}" if ($num eq $highlight);
+        print "$c{reset}" if ($highlights{$num});
     }
     print "\n";
 }
