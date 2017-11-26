@@ -79,10 +79,6 @@ sub load_ivil {
     $timestamp .= "00" if  $timestamp =~ /^\d{12}$/;
     confess "Timestamp: '$timestamp' is invalid" unless $timestamp =~ /^\d{14}$/;
 
-    # Save kickstart timestamp
-
-    kickstart($workspace, $timestamp);
-
     # Load processing plugins
 
     my $count = 0;
@@ -103,6 +99,10 @@ sub load_ivil {
             $scan_id = create_scan($workspace_id, $scan, $scanner, "Please update manually");
         }
         my $run_id = update_run($workspace_id, $scan_id, $timestamp);
+
+        # Save kickstart timestamp
+
+        kickstart($workspace_id, $timestamp);
 
         # Now we create the findings
 
@@ -141,7 +141,7 @@ sub load_ivil {
             my $debug = 0;
             $debug = 1 if ($print);
             my $plugins = Seccubus::Plugins -> new( plugins_dir  =>  'plugins', 
-                                                    workspace_id => $workspace, 
+                                                    workspace_id => $workspace_id, 
                                                     scanner      => $scanner, 
                                                     timestamp    => $timestamp,
                                                     debug        => $debug,
@@ -174,6 +174,7 @@ sub load_ivil {
             }
 
 
+            print "Update finding. Status: " . $status . "\n";
             my $finding_id = update_finding(
                 workspace_id    => $workspace_id,
                 run_id      => $run_id,
@@ -186,9 +187,11 @@ sub load_ivil {
                 timestamp   => $timestamp,
                 status      => $status,
             );
-
+            print "References in findings:\n"  if $print >1;
+            print Dumper %refs . "\n" if $print >1;
             for my $vulntype (@types) {
                 for my $vulnid (@{$refs{$vulntype}}) {
+                    print "Vulnerability: $vulntype\n" if $print >1;
                     update_vuln(
                         workspace_id    => $workspace_id,
                         run_id      => $run_id,
