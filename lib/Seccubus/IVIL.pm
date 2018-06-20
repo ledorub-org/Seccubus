@@ -174,7 +174,7 @@ sub load_ivil {
             }
 
 
-            print "Update finding. Status: " . $status . "\n";
+            print "Update finding. Status: " . $status . "\n" if $print >1;
             my $finding_id = update_finding(
                 workspace_id    => $workspace_id,
                 run_id      => $run_id,

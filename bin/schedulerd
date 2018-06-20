@@ -1,0 +1,109 @@
+#!/usr/bin/env perl
+# Copyright 2017 Oleg Makarov
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ------------------------------------------------------------------------------
+# This program is daemon for scheduled run scans
+# ------------------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Getopt::Long;
+use Proc::Daemon;
+use Proc::PID::File;
+use POSIX;
+use Data::Dumper;
+use threads;
+
+use lib (
+           './',
+           './lib'
+          );
+
+
+use SeccubusV2;
+use Seccubus::Workspaces;
+use Seccubus::Scans2;
+
+
+die "This program need root privilegies to start" if ($< > 0);
+
+my $cfg = get_config();
+my $uid =  getpwnam($cfg->{daemon}->{user}); 
+my $gid =  getgrnam($cfg->{daemon}->{user});
+my $workdir = $cfg->{daemon}->{workdir};
+
+# Init queues structure
+my $queues;
+
+# Daemonize
+my $daemon = Proc::Daemon->new(
+    workdir => $workdir,
+    );
+
+# Check if daemon already running
+if (Proc::PID::File->running()) {
+    print "Already running\n";
+    exit 0;
+}
+
+print Proc::PID::File -> running();
+
+# Downgrading privilegies
+
+POSIX::setgid($gid);
+POSIX::setuid($uid);
+
+my $nodes;
+
+# Wait for start of minute
+#to_minute();
+
+
+# Enter loop to do work
+for (;;) {
+  my $time = time;
+	# Select schedules
+  get_schedule(); # Здесь надо сделать, чтобы выбиралось только 
+
+  print "start processing\n";
+
+  # Process queues
+  for my $a (keys %queues) {
+    print "Fork with:\n";
+    print Dumper $a;
+    while (my $task = task_from_queue($a)) {
+      my $thread = threads -> create(\&run_scan, 100, $task);
+      $thread -> join();
+    }
+  }
+
+  print "End of processing\n";
+
+  sleep(1);
+  if (time - $time < 60) {
+    to_minute();
+  }
+}
+
+
+
+
+sub to_minute {
+  my ($sec) = localtime(time);
+  while ($sec > 0) {
+    ($sec) = localtime(time);
+    print "$sec ";
+    sleep(1);
+  }
+}

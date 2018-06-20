@@ -26,7 +26,7 @@
 	</database>
 	<paths>
 		<modules>/opt/seccubus/lib</modules>
-		<scanners>/opt/seccubus/scanners</scanners>
+		<scanners>home/oleg/Seccubus/scanners</scanners>
 		<bindir>/opt/seccubus/bin</bindir>
 		<configdir>/opt/seccubus/etc</configdir>
 		<dbdir>/opt/seccubus/db</dbdir>

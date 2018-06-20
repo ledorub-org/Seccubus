@@ -26,7 +26,7 @@
 	</database>
 	<paths>
 		<modules>/home/ubuntu/Seccubus/lib</modules>
-		<scanners>/home/ubuntu/Seccubus/scanners</scanners>
+		<scanners>/home/oleg/work/Seccubus/scanners</scanners>
 		<bindir>/home/ubuntu/Seccubus/bin</bindir>
 		<configdir>/home/ubuntu/Seccubus/etc</configdir>
 		<dbdir>/home/ubuntu/Seccubus/db</dbdir>
@@ -50,4 +50,8 @@
         <key>testdata/seccubus.key</key>
         <baseurl></baseurl>
     </http>
+    <daemon>
+        <user>oleg2</user>
+        <workdir>/home/oleg/work/Seccubus</workdir>
+    </daemon>
 </seccubus>
